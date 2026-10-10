@@ -1,0 +1,24 @@
+## Build generated artifacts
+build/
+DerivedData/
+
+## Xcode User settings (contains local layout, open tabs, etc.)
+xcuserdata/
+*.xcuserstate
+
+## App packaging & debug symbols
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.hmap
+
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+## Swift Package Manager (Uncomment if you want to exclude local dependency builds)
+#.build/
+
+## macOS system files
+.DS_Store
+
