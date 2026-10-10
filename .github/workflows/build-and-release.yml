@@ -30,7 +30,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Xcode version:"
+          export DEVELOPER_DIR="$(xcode-select -p)"
+          export PATH="$DEVELOPER_DIR/usr/bin:$PATH"
+
+          echo "Developer dir: $DEVELOPER_DIR"
+          which xcodebuild
           xcodebuild -version
 
           WORKSPACE=$(find . -maxdepth 2 -type d -name "*.xcworkspace" -print -quit)
@@ -64,15 +68,22 @@ jobs:
         run: |
           set -euo pipefail
 
+          export DEVELOPER_DIR="$(xcode-select -p)"
+          export PATH="$DEVELOPER_DIR/usr/bin:$PATH"
+
+          echo "Developer dir: $DEVELOPER_DIR"
+          which xcodebuild
+          xcodebuild -version
+
           TYPE="${{ steps.xcode.outputs.type }}"
-          PATH="${{ steps.xcode.outputs.path }}"
+          PATH_VAL="${{ steps.xcode.outputs.path }}"
           SCHEME="${{ steps.xcode.outputs.scheme }}"
 
-          echo "Building with type=$TYPE path=$PATH scheme=$SCHEME"
+          echo "Building with type=$TYPE path=$PATH_VAL scheme=$SCHEME"
 
           if [ "$TYPE" = "workspace" ]; then
             xcodebuild \
-              -workspace "$PATH" \
+              -workspace "$PATH_VAL" \
               -scheme "$SCHEME" \
               -configuration Release \
               CODE_SIGNING_ALLOWED=NO \
@@ -80,7 +91,7 @@ jobs:
               -derivedDataPath build
           else
             xcodebuild \
-              -project "$PATH" \
+              -project "$PATH_VAL" \
               -scheme "$SCHEME" \
               -configuration Release \
               CODE_SIGNING_ALLOWED=NO \
