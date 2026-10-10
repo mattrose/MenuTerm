@@ -19,9 +19,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Xcode
+      - name: Select Xcode
+        shell: bash
         run: |
-         sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+          set -e
+          XCODE_PATH=$(ls -d /Applications/Xcode*.app/Contents/Developer 2>/dev/null | head -n 1)
+          if [ -z "$XCODE_PATH" ]; then
+            echo "No Xcode installation found"
+            ls /Applications || true
+            exit 1
+          fi
+          sudo xcode-select --switch "$XCODE_PATH"
+          xcodebuild -version
 
       - name: Detect project/workspace and scheme
         id: xcode
