@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     name: Build and package MenuTerm
-    runs-on: macos-latest
+    runs-on: macos-15
     permissions:
       contents: write
       pull-requests: write
@@ -19,27 +19,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
-        shell: bash
-        run: |
-          set -e
-          XCODE_PATH=$(ls -d /Applications/Xcode*.app/Contents/Developer 2>/dev/null | head -n 1)
-          if [ -z "$XCODE_PATH" ]; then
-            echo "No Xcode installation found"
-            ls /Applications || true
-            exit 1
-          fi
-          sudo xcode-select --switch "$XCODE_PATH"
-          xcodebuild -version
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest
 
       - name: Detect project/workspace and scheme
         id: xcode
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
 
-          WORKSPACE=$(find . -maxdepth 1 -type d -name "*.xcworkspace" -print -quit)
-          PROJECT=$(find . -maxdepth 1 -type d -name "*.xcodeproj" -print -quit)
+          echo "Xcode version:"
+          xcodebuild -version
+
+          WORKSPACE=$(find . -maxdepth 2 -type d -name "*.xcworkspace" -print -quit)
+          PROJECT=$(find . -maxdepth 2 -type d -name "*.xcodeproj" -print -quit)
 
           if [ -n "$WORKSPACE" ]; then
             echo "type=workspace" >> "$GITHUB_OUTPUT"
@@ -49,19 +44,31 @@ jobs:
             echo "path=$PROJECT" >> "$GITHUB_OUTPUT"
           else
             echo "No Xcode project or workspace found"
+            find . -maxdepth 2 -type d | head -n 50
             exit 1
           fi
 
-          SCHEME=$(xcodebuild -list -json | ruby -e 'require "json"; puts JSON.parse(STDIN.read)["project"]["targets"][0]')
+          SCHEME=$(xcodebuild -list -json | ruby -e 'require "json"; data = JSON.parse(STDIN.read); puts((data["project"] && data["project"]["schemes"] && data["project"]["schemes"][0]) || (data["project"] && data["project"]["targets"] && data["project"]["targets"][0]) || "")')
+
+          if [ -z "$SCHEME" ]; then
+            echo "Could not determine scheme"
+            xcodebuild -list -json
+            exit 1
+          fi
+
           echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+          echo "Detected scheme: $SCHEME"
 
       - name: Build app
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
+
           TYPE="${{ steps.xcode.outputs.type }}"
           PATH="${{ steps.xcode.outputs.path }}"
           SCHEME="${{ steps.xcode.outputs.scheme }}"
+
+          echo "Building with type=$TYPE path=$PATH scheme=$SCHEME"
 
           if [ "$TYPE" = "workspace" ]; then
             xcodebuild \
@@ -69,7 +76,7 @@ jobs:
               -scheme "$SCHEME" \
               -configuration Release \
               CODE_SIGNING_ALLOWED=NO \
-              build \
+              clean build \
               -derivedDataPath build
           else
             xcodebuild \
@@ -77,7 +84,7 @@ jobs:
               -scheme "$SCHEME" \
               -configuration Release \
               CODE_SIGNING_ALLOWED=NO \
-              build \
+              clean build \
               -derivedDataPath build
           fi
 
@@ -85,19 +92,18 @@ jobs:
         id: pkg
         shell: bash
         run: |
-          set -e
-          APP_PATH=$(find build/Build/Products/Release -type d -name "*.app" | head -n 1)
+          set -euo pipefail
 
+          APP_PATH=$(find build/Build/Products/Release -type d -name "*.app" | head -n 1)
           if [ -z "$APP_PATH" ]; then
             echo "No .app bundle found"
-            find build -maxdepth 5 -type d | head -n 50
+            find build -maxdepth 6 -type d | head -n 100
             exit 1
           fi
 
           ZIP_NAME="MenuTerm-${GITHUB_SHA::7}.zip"
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_NAME"
 
-          echo "app=$APP_PATH" >> "$GITHUB_OUTPUT"
           echo "zip=$ZIP_NAME" >> "$GITHUB_OUTPUT"
           ls -lh "$ZIP_NAME"
 
