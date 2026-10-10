@@ -1,0 +1,12 @@
+{
+  "/Users/mattrose/Library/Developer/Xcode/UntitledProjects/Untitled Project/menuterm/GlobalHotKey.swift" : {
+    "abi-baseline-json" : "/Users/mattrose/Library/Developer/Xcode/UntitledProjects/Untitled Project/build/Build/Intermediates.noindex/MenuTerm.build/Release/MenuTerm.build/Objects-normal/arm64/menuterm.abi.json",
+    "const-values" : "/Users/mattrose/Library/Developer/Xcode/UntitledProjects/Untitled Project/build/Build/Intermediates.noindex/MenuTerm.build/Release/MenuTerm.build/Objects-normal/arm64/MenuTerm-primary.swiftconstvalues",
+    "dependencies" : "/Users/mattrose/Library/Developer/Xcode/UntitledProjects/Untitled Project/build/Build/Intermediates.noindex/MenuTerm.build/Release/MenuTerm.build/Objects-normal/arm64/MenuTerm-primary.d",
+    "diagnostics" : "/Users/mattrose/Library/Developer/Xcode/UntitledProjects/Untitled Project/build/Build/Intermediates.noindex/MenuTerm.build/Release/MenuTerm.build/Objects-normal/arm64/MenuTerm-primary.dia",
+    "objc-header" : "/Users/mattrose/Library/Developer/Xcode/UntitledProjects/Untitled Project/build/Build/Intermediates.noindex/MenuTerm.build/Release/MenuTerm.build/Objects-normal/arm64/menuterm-Swift.h",
+    "swiftdoc" : "/Users/mattrose/Library/Developer/Xcode/UntitledProjects/Untitled Project/build/Build/Intermediates.noindex/MenuTerm.build/Release/MenuTerm.build/Objects-normal/arm64/menuterm.swiftdoc",
+    "swiftmodule" : "/Users/mattrose/Library/Developer/Xcode/UntitledProjects/Untitled Project/build/Build/Intermediates.noindex/MenuTerm.build/Release/MenuTerm.build/Objects-normal/arm64/menuterm.swiftmodule",
+    "swiftsourceinfo" : "/Users/mattrose/Library/Developer/Xcode/UntitledProjects/Untitled Project/build/Build/Intermediates.noindex/MenuTerm.build/Release/MenuTerm.build/Objects-normal/arm64/menuterm.swiftsourceinfo"
+  }
+}
