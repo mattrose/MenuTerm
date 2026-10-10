@@ -1,0 +1,115 @@
+name: Build and Release
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    name: Build and package MenuTerm
+    runs-on: macos-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect project/workspace and scheme
+        id: xcode
+        shell: bash
+        run: |
+          set -e
+
+          WORKSPACE=$(find . -maxdepth 1 -type d -name "*.xcworkspace" -print -quit)
+          PROJECT=$(find . -maxdepth 1 -type d -name "*.xcodeproj" -print -quit)
+
+          if [ -n "$WORKSPACE" ]; then
+            echo "type=workspace" >> "$GITHUB_OUTPUT"
+            echo "path=$WORKSPACE" >> "$GITHUB_OUTPUT"
+          elif [ -n "$PROJECT" ]; then
+            echo "type=project" >> "$GITHUB_OUTPUT"
+            echo "path=$PROJECT" >> "$GITHUB_OUTPUT"
+          else
+            echo "No Xcode project or workspace found"
+            exit 1
+          fi
+
+          SCHEME=$(xcodebuild -list -json | ruby -e 'require "json"; puts JSON.parse(STDIN.read)["project"]["targets"][0]')
+          echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+
+      - name: Build app
+        shell: bash
+        run: |
+          set -e
+          TYPE="${{ steps.xcode.outputs.type }}"
+          PATH="${{ steps.xcode.outputs.path }}"
+          SCHEME="${{ steps.xcode.outputs.scheme }}"
+
+          if [ "$TYPE" = "workspace" ]; then
+            xcodebuild \
+              -workspace "$PATH" \
+              -scheme "$SCHEME" \
+              -configuration Release \
+              CODE_SIGNING_ALLOWED=NO \
+              build \
+              -derivedDataPath build
+          else
+            xcodebuild \
+              -project "$PATH" \
+              -scheme "$SCHEME" \
+              -configuration Release \
+              CODE_SIGNING_ALLOWED=NO \
+              build \
+              -derivedDataPath build
+          fi
+
+      - name: Package app
+        id: pkg
+        shell: bash
+        run: |
+          set -e
+          APP_PATH=$(find build/Build/Products/Release -type d -name "*.app" | head -n 1)
+
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle found"
+            find build -maxdepth 5 -type d | head -n 50
+            exit 1
+          fi
+
+          ZIP_NAME="MenuTerm-${GITHUB_SHA::7}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_NAME"
+
+          echo "app=$APP_PATH" >> "$GITHUB_OUTPUT"
+          echo "zip=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+          ls -lh "$ZIP_NAME"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MenuTerm-build
+          path: ${{ steps.pkg.outputs.zip }}
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.pkg.outputs.zip }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on PR with artifact link
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Build succeeded. Download the artifact here: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            })
